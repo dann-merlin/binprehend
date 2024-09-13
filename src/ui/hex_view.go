@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"strings"
 	"fmt"
 
 	"github.com/dann-merlin/binprehend/src/hex"
@@ -13,52 +14,26 @@ import (
 )
 
 func NewHexView(dataSnippet model.DataSnippet, cols int) *fyne.Container {
-	cont := container.NewWithoutLayout()
+	cont := container.NewVBox()
 
-	pos := fyne.NewPos(0, 0)
-	contSize := fyne.NewSize(0, 0)
-	largestTextSize := float32(0)
+	var content strings.Builder
 	for i, cell := range dataSnippet.Data {
-		content := hex.ByteToHex(*cell.Content)
-		t := canvas.NewText(content, color.White)
-		t.TextStyle = fyne.TextStyle{Monospace: true}
-		textsize := fyne.MeasureText(content, t.TextSize, t.TextStyle)
+		content.WriteString(hex.ByteToHex(*cell.Content))
 
-		if i % cols == 0 {
-			pos.X = float32(0)
-			pos.Y += largestTextSize
-			largestTextSize = float32(0)
-		} else if i % (cols/2) == 0 {
-			pos.X += largestTextSize * 0.6
-		} else if i % 2 == 0 {
-			pos.X += largestTextSize * 0.3
-		} else {
-			pos.X += largestTextSize * 0.15
+		if i % 2 == 1 {
+			content.WriteString(" ")
+		}
+		if i % (cols/2) == (cols/2 - 1) {
+			content.WriteString(" ")
 		}
 
-		if i % cols != 0 {
-			pos.X += textsize.Width
+		if i % cols == cols - 1 || i + 1 == len(dataSnippet.Data) {
+			t := canvas.NewText(content.String(), color.White)
+			t.TextStyle = fyne.TextStyle{Monospace: true}
+			cont.Add(t)
+			content.Reset()
 		}
-
-		if largestTextSize < textsize.Height {
-			largestTextSize = textsize.Height
-		}
-
-		if contSize.Width < pos.X + textsize.Width {
-			contSize.Width = pos.X + textsize.Width
-		}
-		if contSize.Height < pos.Y + textsize.Height {
-			contSize.Height = pos.Y + textsize.Height
-		}
-		t.Move(pos)
-		t.Resize(textsize)
-		cont.Add(t)
 	}
-	rect := canvas.NewRectangle(color.RGBA{255, 0, 0, 255})
-	rect.Resize(contSize)
-	rect.Hide()
-	cont.Add(rect)
-	cont.Resize(contSize)
 	fmt.Printf("Hex View: (%f,%f) at (%f,%f)\n", cont.Size().Width, cont.Size().Height, cont.Position().X, cont.Position().Y)
 	return cont
 }

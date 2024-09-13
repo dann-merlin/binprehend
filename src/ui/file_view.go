@@ -2,16 +2,12 @@ package ui
 
 import (
 	"fmt"
-	// "image/color"
 
 	"github.com/dann-merlin/binprehend/src/file"
 	"github.com/dann-merlin/binprehend/src/model"
-	// "github.com/dann-merlin/binprehend/src/hex"
 
 	"fyne.io/fyne/v2"
-	// "fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	// "fyne.io/fyne/v2/widget"
 )
 
 const cols = 16
