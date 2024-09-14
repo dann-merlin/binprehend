@@ -24,7 +24,7 @@ func NewMainWindow(filepath string) (fyne.Window, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create main Window: %W", err)
 	}
-	hbox := container.NewHBox(fileView, structureTreeView)
+	hbox := container.NewBorder(nil, nil, fileView, nil, structureTreeView.Container)
 	w.SetContent(hbox)
 	return w, nil
 }
