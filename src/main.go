@@ -6,13 +6,16 @@ import (
 
 	"github.com/dann-merlin/binprehend/src/state"
 	"github.com/dann-merlin/binprehend/src/ui"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
 )
 
 func main() {
 	filename := flag.String("file", "", "Input file to open")
 	flag.Parse()
 
-	state.InitApp()
+	fyne.SetCurrentApp(app.NewWithID(state.AppID))
 
 	if *filename != "" {
 		w, err := ui.NewMainWindow(*filename)
@@ -24,5 +27,5 @@ func main() {
 		w := ui.NewSelectFileWindow()
 		w.Show()
 	}
-	state.ThisApp.Run()
+	fyne.CurrentApp().Run()
 }

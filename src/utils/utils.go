@@ -2,7 +2,6 @@ package utils
 
 import (
 	"log"
-	"github.com/dann-merlin/binprehend/src/state"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -10,7 +9,7 @@ import (
 )
 
 func getErrorWindow() fyne.Window {
-	w := state.ThisApp.NewWindow("Error")
+	w := fyne.CurrentApp().NewWindow("Error")
 	w.Show()
 	return w
 }
@@ -18,7 +17,7 @@ func getErrorWindow() fyne.Window {
 func DieWithWindow(err error, w fyne.Window) {
 	log.Println("[Error]", err)
 	dialog.ShowCustomConfirm("Fatal Error", "Ok", "", widget.NewLabel(err.Error()), func(confirm bool) {
-		state.ThisApp.Quit()
+		fyne.CurrentApp().Quit()
 	}, w)
 }
 

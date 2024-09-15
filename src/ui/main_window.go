@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dann-merlin/binprehend/src/file"
-	"github.com/dann-merlin/binprehend/src/state"
+	// "github.com/dann-merlin/binprehend/src/state"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -15,8 +15,9 @@ func NewMainWindow(filepath string) (fyne.Window, error) {
 	if err != nil {
 		return nil, err
 	}
-	w := state.ThisApp.NewWindow("binprehend")
-	structureTreeView, err := NewStructureTreeView()
+	w := fyne.CurrentApp().NewWindow("binprehend")
+	// structureTreeView, err := NewStructureTreeView()
+	kaitaiView, err := NewKaitaiView()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create main Window: %W", err)
 	}
@@ -24,7 +25,7 @@ func NewMainWindow(filepath string) (fyne.Window, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create main Window: %W", err)
 	}
-	hbox := container.NewBorder(nil, nil, fileView, nil, structureTreeView.Container)
-	w.SetContent(hbox)
+	cont := container.NewBorder(nil, nil, fileView, nil, kaitaiView)
+	w.SetContent(cont)
 	return w, nil
 }

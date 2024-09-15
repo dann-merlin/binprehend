@@ -2,7 +2,6 @@ package ui
 
 import (
 	"errors"
-	"github.com/dann-merlin/binprehend/src/state"
 	"github.com/dann-merlin/binprehend/src/utils"
 
 	"fyne.io/fyne/v2"
@@ -13,7 +12,7 @@ import (
 
 // NewSelectFileWindow shows the file selection window
 func NewSelectFileWindow() fyne.Window {
-	w := state.ThisApp.NewWindow("Select a File")
+	w := fyne.CurrentApp().NewWindow("Select a File")
 
 	label := widget.NewLabel("Please select a file.")
 	fileButton := widget.NewButton("Select File", func() {
