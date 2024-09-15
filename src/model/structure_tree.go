@@ -1,11 +1,17 @@
 package model
 
+import (
+	"math/rand"
+)
+
 type STNode interface {
+	GetID() uint64
 	GetName() string
 	GetBitLen() uint64
 }
 
 type STBasic struct {
+	id uint64
 	name string
 	bitLen uint64
 	typename string
@@ -14,6 +20,16 @@ type STBasic struct {
 func (n STBasic) GetName() string {
 	return n.name
 }
+	// text := id
+	// if branch {
+	// 	text += " (branch)"
+	// }
+	// o.(*widget.Label).SetText(text)
+	// text := id
+	// if branch {
+	// 	text += " (branch)"
+	// }
+	// o.(*widget.Label).SetText(text)
 
 func (n STBasic) GetBitLen() uint64 {
 	return n.bitLen
@@ -24,8 +40,20 @@ type STStruct struct {
 	fields []STNode
 }
 
+var nodes = make(map[uint64]STNode)
+
+func register(n STNode) {
+	nodes[n.GetID()] = n
+}
+
+func GetNodeWithID(id string) {
+	
+}
+
 func NewSTCustom(name string, bitLen uint64, typename string) STBasic {
-	return STBasic{name, bitLen, typename}
+	n := STBasic{rand.Uint64(), name, bitLen, typename}
+	register(n)
+	return n
 }
 
 func NewSTUnsigned8(name string) STBasic {

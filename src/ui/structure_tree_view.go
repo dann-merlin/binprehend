@@ -13,18 +13,13 @@ type StructureTreeView struct {
 	data map[widget.TreeNodeID]model.STNode
 }
 
-func getChildUIDs(id widget.TreeNodeID) []widget.TreeNodeID {
-	if id == "lmao" {
-		return []string{"lol"}
-	} else if id == "" {
-		return []string{"asdf", "lmao", "rofl"}
-	} else {
-		return []string{"asdf", "lmao", "rofl"}
-	}
+func getChildIDs(id widget.TreeNodeID) []widget.TreeNodeID {
+	node := model.GetNodeWithID(id)
+	return node.Children
 }
 
 func isBranch(id widget.TreeNodeID) bool {
-	return id == "lmao" || id == ""
+	return model.GetNodeWithID.IsContainer()
 }
 
 func create(branch bool) fyne.CanvasObject {
@@ -32,16 +27,12 @@ func create(branch bool) fyne.CanvasObject {
 }
 
 func update(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
-	// text := id
-	// if branch {
-	// 	text += " (branch)"
-	// }
-	// o.(*widget.Label).SetText(text)
+	o.(*STVEntry).update(model.GetNodeWithID(id))
 }
 
 func NewStructureTreeView() (StructureTreeView, error) {
 	addnewView := NewAddnewView()
-	tree := widget.NewTree(getChildUIDs, isBranch, create, update)
+	tree := widget.NewTree(getChildIDs, isBranch, create, update)
 	cont := container.NewBorder(addnewView, nil, nil, nil, tree)
 	data := make(map[widget.TreeNodeID]model.STNode)
 	stv := StructureTreeView{Container: cont, data: data}
