@@ -1,124 +1,127 @@
 package model
 
-import (
-	"math/rand"
-	"errors"
-)
+import "fmt"
 
-type STNode interface {
-	GetID() uint64
+type IType interface {
 	GetName() string
-	GetBitLen() uint64
+	GetByteLen() uint64
+	// IsPrimitive() bool
 }
 
-type STContainer interface {
-	STNode
-	GetChildren() []STNode
+type Field struct {
+	Name string
+	Type IType
 }
 
-type STBasic struct {
-	id uint64
+type ICompositeType interface {
+	IType
+	GetFields() []Field
+	AddField(*Field) error
+}
+
+type basicType struct {
 	name string
-	bitLen uint64
-	typename string
+	byteLen uint64
 }
 
-func (n STBasic) GetID() uint64 {
-	return n.id
+type PrimitiveType struct {
+	basicType
 }
 
-func (n STBasic) GetName() string {
-	return n.name
+func (t *basicType) GetName() string {
+	return t.name
 }
 
-func (n STBasic) GetBitLen() uint64 {
-	return n.bitLen
+func (t *basicType) GetByteLen() uint64 {
+	return t.byteLen
 }
 
-type STStruct struct {
-	*STBasic
-	fields []STNode
+// func (t *PrimitiveType) IsPrimitive() bool {
+// 	return true
+// }
+
+type CompositeType struct {
+	basicType
+	fields []Field
 }
 
-var nodes = make(map[uint64]STNode)
-var changedCallbacks []func(id uint64)
-var root STNode = nil
+// func (t *CompositeType) IsPrimitive() bool {
+// 	return false
+// }
 
-func GetRoot() STNode {
-	if root == nil {
-		root = &STStruct{&STBasic{0, "ROOT", 0, "container"}, []STNode{}}
-		nodes[0] = root
+func (t *CompositeType) AddField(f *Field) error {
+	for _, existing := range t.fields {
+		if existing.Name == f.Name {
+			return fmt.Errorf("Field \"%s\" already exists in type \"%s\"", f.Name, t.GetName())
+		}
 	}
-	return root
+	defer cb(t)
+	t.fields = append(t.fields, *f)
+	t.recomputeLen()
+	return nil
 }
 
-func AddChangedCallback(cb func(uint64)) {
-	changedCallbacks = append(changedCallbacks, cb)
-}
-
-func register(n STNode) {
-	nodes[n.GetID()] = n
-	for _, cb := range changedCallbacks {
-		cb(n.GetID())
+func (t *CompositeType) recomputeLen() {
+	var result uint64
+	result = 0
+	for _, field := range t.fields {
+		result += field.Type.GetByteLen()
 	}
+	t.byteLen = result
 }
 
-func GetNodeWithID(id uint64) STNode {
-	if id == 0 {
-		return GetRoot()
+func (t *CompositeType) GetFields() []Field {
+	return t.fields
+}
+
+func NewCompositeType(name string) ICompositeType {
+	c := &CompositeType{basicType{name, 0},[]Field{}}
+	register(c)
+	return c
+}
+
+func GetBuiltinTypes() map[string]IType {
+	builtins := make(map[string]IType)
+	builtins["unsigned8"]  = &PrimitiveType{basicType{"unsigned8",  1}}
+	builtins["unsigned16"] = &PrimitiveType{basicType{"unsigned16", 2}}
+	builtins["unsigned32"] = &PrimitiveType{basicType{"unsigned32", 4}}
+	return builtins
+}
+
+var customTypes = map[string]IType{}
+
+func register(t IType) {
+	customTypes[t.GetName()] = t
+}
+
+func GetTypes() map[string]IType {
+	freshMap := GetBuiltinTypes()
+	for i, t := range customTypes {
+		freshMap[i] = t
 	}
-	return nodes[id]
+	return freshMap
 }
 
-func NewSTCustom(name string, bitLen uint64, typename string) *STBasic {
-	n := STBasic{rand.Uint64(), name, bitLen, typename}
-	register(&n)
-	return &n
+func GetType(name string) IType {
+	return GetTypes()[name]
 }
 
-func NewSTUnsigned8(name string) STNode {
-	return NewSTCustom(name, 8, "unsigned8")
-}
-
-func NewSTUnsigned16(name string) STNode {
-	return NewSTCustom(name, 16, "unsigned16")
-}
-
-func NewSTUnsigned32(name string) STNode {
-	return NewSTCustom(name, 32, "unsigned32")
-}
-
-func NewSTStruct(name string) STNode {
-	n := STStruct{&STBasic{rand.Uint64(), name, 0, "todo"}, []STNode{}}
-	register(&n)
-	return &n
-}
-
-func (n STStruct) GetChildren() []STNode {
-	return n.fields
-}
-
-func GetTypesMap() map[string]func(string) STNode {
-	return map[string]func(string) STNode {
-		"unsigned8": NewSTUnsigned8,
-		"unsigned16": NewSTUnsigned16,
-		"unsigned32": NewSTUnsigned32,
-		"container": NewSTStruct,
-	}
-}
-
-func GetTypes() []string {
+func GetTypesNames() []string {
 	var types []string
-	for t := range GetTypesMap() {
+	for t := range GetTypes() {
 		types = append(types, t)
 	}
 	return types
 }
 
-func NewNode(name string, typename string) (STNode, error) {
-	constructor := GetTypesMap()[typename]
-	if constructor == nil {
-		return nil, errors.New("Unknown typename")
+var cbs = []func(IType){}
+
+func cb(t IType) {
+	for _, f := range cbs {
+		f(t)
 	}
-	return constructor(name), nil
+}
+
+func AddChangedCallback(cb func(IType)) {
+	cbs = append(cbs, cb)
 }

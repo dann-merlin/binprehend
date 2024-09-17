@@ -13,26 +13,13 @@ import (
 type STVEntry struct {
 	widget.BaseWidget
 	nameLabel *widget.Label
-}
-
-type STVContainerEntry struct {
-	STVEntry
 	numFieldsLabel *widget.Label
 }
 
-func (e *STVEntry) Update(n model.STNode) {
-	bitLen := n.GetBitLen()
-	bitLenString := ""
-	if bitLen % 8 != 0 {
-		bitLenString = fmt.Sprintf("+ %d bits", bitLen % 8)
-	}
-	lenString := fmt.Sprintf("%d bytes%s", bitLen / 8, bitLenString)
-	e.nameLabel.SetText(fmt.Sprintf("%s (%s)", n.GetName(), lenString))
-}
-
-func (e *STVContainerEntry) Update(n model.STContainer) {
-	e.(*STVEntry).Update(n)
-	e.numFieldsLabel.SetText(fmt.Sprintf("(%d fields)", len(n.GetChildren())))
+func (e *STVEntry) Update(field string, n model.IType) {
+	byteLen := n.GetByteLen()
+	byteLenString := fmt.Sprintf("%d bytes", byteLen)
+	e.nameLabel.SetText(fmt.Sprintf("%s (%s)", field, byteLenString))
 }
 
 func NewSTVEntry(branch bool) *STVEntry {

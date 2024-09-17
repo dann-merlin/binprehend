@@ -1,4 +1,5 @@
 package ui
+/*
 
 import (
 	"errors"
@@ -65,3 +66,4 @@ func NewAddnewView() fyne.CanvasObject {
 	add := widget.NewButton("Add", onAdd)
 	return add
 }
+*/

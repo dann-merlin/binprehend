@@ -2,7 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"strconv"
+	"image/color"
+	"strings"
 
 	"github.com/dann-merlin/binprehend/src/model"
 
@@ -11,29 +12,54 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+var IDtoColor = make(map[widget.TreeNodeID]color.Color)
+
 type StructureTreeView struct {
-	*fyne.Container
+	widget.BaseWidget
+	rootType model.IType
+	toolbar *StructureTreeToolbar
 	tree *widget.Tree
 }
 
-func toID(id string) uint64 {
-	parsed, err := strconv.ParseUint(id, 0, 64)
-	if err != nil {
-		fmt.Printf("Failed to convert string id to uint64 id: %s\n", err)
-		return 0
+func extractCompID(id widget.TreeNodeID) (string, string) {
+	parts := strings.Split(id, ":")
+
+	if len(parts) == 1 {
+		fmt.Println("Only extracted type for CompID:", id)
+		return "", parts[0]
 	}
-	return parsed
+	
+	if len(parts) != 2 {
+		fmt.Println("Failed to extract CompID for:", id)
+		return "", ""
+	}
+
+	return parts[0], parts[1]
 }
 
-func getChildIDs(id widget.TreeNodeID) []widget.TreeNodeID {
+func fieldName(id widget.TreeNodeID) string {
+	f, _ := extractCompID(id)
+	return f
+}
+
+func typeName(id widget.TreeNodeID) string {
+	_, t := extractCompID(id)
+	return t
+}
+
+func BuildCompID(fieldName, typeName string) widget.TreeNodeID {
+	return fmt.Sprintf("%s:%s", fieldName, typeName)
+}
+
+func (stv *StructureTreeView) getChildIDs(id widget.TreeNodeID) []widget.TreeNodeID {
 	if id == "" {
-		return []widget.TreeNodeID{"0"}
+		return []widget.TreeNodeID{BuildCompID("root", stv.rootType.GetName())}
 	}
-	node := model.GetNodeWithID(toID(id))
-	if cont, ok := node.(model.STContainer); ok {
+	node := model.GetType(typeName(id))
+	if cont, ok := node.(model.ICompositeType); ok {
 		var result []widget.TreeNodeID
-		for _, c := range cont.GetChildren() {
-			result = append(result, string(c.GetID()))
+		for _, c := range cont.GetFields() {
+			result = append(result, BuildCompID(c.Name, c.Type.GetName()))
 		}
 		return result
 	}
@@ -45,8 +71,8 @@ func isBranch(id widget.TreeNodeID) bool {
 	if id == "" {
 		return true
 	}
-	node := model.GetNodeWithID(toID(id))
-	_, ok := node.(model.STContainer)
+	node := model.GetType(typeName(id))
+	_, ok := node.(model.ICompositeType)
 	return ok
 }
 
@@ -55,20 +81,35 @@ func create(branch bool) fyne.CanvasObject {
 }
 
 func update(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
-	o.(*STVEntry).Update(model.GetNodeWithID(toID(id)))
+	t := model.GetType(typeName(id))
+	if t != nil {
+		o.(*STVEntry).Update(fieldName(id), t)
+	} else {
+		fmt.Println("Tried to update nil type...:", id)
+	}
 }
 
-func (stv *StructureTreeView) onDataChanged(idNmbr uint64) {
+func (stv *StructureTreeView) onTypeChanged(t model.IType) {
 	// id := string(idNmbr)
 	stv.tree.Refresh()
 }
 
-func NewStructureTreeView() (StructureTreeView, error) {
-	addnewView := NewAddnewView()
-	tree := widget.NewTree(getChildIDs, isBranch, create, update)
-	cont := container.NewBorder(addnewView, nil, nil, nil, tree)
-	stv := StructureTreeView{Container: cont, tree: tree}
-	model.AddChangedCallback(stv.onDataChanged)
-	return stv, nil
+func (stv *StructureTreeView) onSelected(id widget.TreeNodeID) {
+	stv.toolbar.SetSelectedType(model.GetType(typeName(id)))
 }
 
+func NewStructureTreeView(t model.IType) *StructureTreeView {
+	structureTreeToolbar := NewStructureTreeToolbar()
+	stv := &StructureTreeView{rootType: t, toolbar: structureTreeToolbar, tree: nil}
+	tree := widget.NewTree(stv.getChildIDs, isBranch, create, update)
+	stv.tree = tree
+	tree.OnSelected = stv.onSelected
+	model.AddChangedCallback(stv.onTypeChanged)
+	stv.tree.ExtendBaseWidget(stv)
+	return stv
+}
+
+func (stv *StructureTreeView) CreateRenderer() fyne.WidgetRenderer {
+	cont := container.NewBorder(stv.toolbar, nil, nil, nil, stv.tree)
+	return widget.NewSimpleRenderer(cont)
+}
