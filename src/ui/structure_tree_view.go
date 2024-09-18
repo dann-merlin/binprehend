@@ -53,17 +53,17 @@ func BuildCompID(fieldName, typeName string) widget.TreeNodeID {
 
 func (stv *StructureTreeView) getChildIDs(id widget.TreeNodeID) []widget.TreeNodeID {
 	if id == "" {
-		return []widget.TreeNodeID{BuildCompID("root", stv.rootType.GetName())}
+		return []widget.TreeNodeID{}
 	}
-	node := model.GetType(typeName(id))
-	if cont, ok := node.(model.ICompositeType); ok {
+	t := model.GetType(typeName(id))
+	if cont, ok := t.(model.ICompositeType); ok {
 		var result []widget.TreeNodeID
 		for _, c := range cont.GetFields() {
 			result = append(result, BuildCompID(c.Name, c.Type.GetName()))
 		}
 		return result
 	}
-	fmt.Println("This should never happen anyways, I think.")
+	fmt.Println("This should never happen anyways, I think.", id, t)
 	return []widget.TreeNodeID{}
 }
 
@@ -95,17 +95,19 @@ func (stv *StructureTreeView) onTypeChanged(t model.IType) {
 }
 
 func (stv *StructureTreeView) onSelected(id widget.TreeNodeID) {
-	stv.toolbar.SetSelectedType(model.GetType(typeName(id)))
+	t := model.GetType(typeName(id))
+	stv.toolbar.SetSelectedType(t, t == stv.rootType)
 }
 
 func NewStructureTreeView(t model.IType) *StructureTreeView {
 	structureTreeToolbar := NewStructureTreeToolbar()
 	stv := &StructureTreeView{rootType: t, toolbar: structureTreeToolbar, tree: nil}
 	tree := widget.NewTree(stv.getChildIDs, isBranch, create, update)
+	tree.Root = BuildCompID("root", t.GetName())
 	stv.tree = tree
 	tree.OnSelected = stv.onSelected
 	model.AddChangedCallback(stv.onTypeChanged)
-	stv.tree.ExtendBaseWidget(stv)
+	stv.ExtendBaseWidget(stv)
 	return stv
 }
 

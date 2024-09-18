@@ -1,6 +1,9 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+)
 
 type IType interface {
 	GetName() string
@@ -36,9 +39,11 @@ func (t *basicType) GetByteLen() uint64 {
 	return t.byteLen
 }
 
-// func (t *PrimitiveType) IsPrimitive() bool {
-// 	return true
-// }
+func NewPrimitive(name string, byteLen uint64) *PrimitiveType {
+	c := &PrimitiveType{basicType{name, byteLen}}
+	register(c)
+	return c
+}
 
 type CompositeType struct {
 	basicType
@@ -80,11 +85,30 @@ func NewCompositeType(name string) ICompositeType {
 	return c
 }
 
+func NewCompositeTypeWithFields(name string, fields []Field) ICompositeType {
+	c := &CompositeType{basicType{name, 0}, fields}
+	c.recomputeLen()
+	register(c)
+	return c
+}
+
+func Unsigned8() *PrimitiveType {
+	return &PrimitiveType{basicType{"unsigned8",  1}}
+}
+
+func Unsigned16() *PrimitiveType {
+	return &PrimitiveType{basicType{"unsigned16", 2}}
+}
+
+func Unsigned32() *PrimitiveType {
+	return &PrimitiveType{basicType{"unsigned32", 4}}
+}
+
 func GetBuiltinTypes() map[string]IType {
 	builtins := make(map[string]IType)
-	builtins["unsigned8"]  = &PrimitiveType{basicType{"unsigned8",  1}}
-	builtins["unsigned16"] = &PrimitiveType{basicType{"unsigned16", 2}}
-	builtins["unsigned32"] = &PrimitiveType{basicType{"unsigned32", 4}}
+	builtins["unsigned8"]  = Unsigned8()
+	builtins["unsigned16"] = Unsigned16()
+	builtins["unsigned32"] = Unsigned32()
 	return builtins
 }
 
@@ -92,6 +116,7 @@ var customTypes = map[string]IType{}
 
 func register(t IType) {
 	customTypes[t.GetName()] = t
+	callbackTypesChanged()
 }
 
 func GetTypes() map[string]IType {
@@ -115,6 +140,13 @@ func GetTypesNames() []string {
 }
 
 var cbs = []func(IType){}
+var typesChangedCallback = []func(){}
+
+func callbackTypesChanged() {
+	for _, cb := range typesChangedCallback {
+		cb()
+	}
+}
 
 func cb(t IType) {
 	for _, f := range cbs {
@@ -122,6 +154,15 @@ func cb(t IType) {
 	}
 }
 
+func RegisterTypesChangedCallback(cb func()) {
+	typesChangedCallback = append(typesChangedCallback, cb)
+}
+
 func AddChangedCallback(cb func(IType)) {
 	cbs = append(cbs, cb)
+}
+
+var nameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+func IsValidName(s string) bool {
+	return nameRegex.MatchString(s)
 }

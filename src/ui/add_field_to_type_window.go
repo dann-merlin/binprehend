@@ -23,9 +23,17 @@ func AddFieldToType(typeNode model.ICompositeType, fieldName string, fieldTypeNa
 func NewAddFieldToTypeWindow(parent model.ICompositeType) {
 	w := fyne.CurrentApp().NewWindow(fmt.Sprintf("Add field to %s", parent.GetName()))
 	fieldNameEntry := widget.NewEntry()
+	fieldNameEntry.Validator = func(s string) error {
+		for _, f := range parent.GetFields() {
+			if s == f.Name {
+				return fmt.Errorf("Type \"%s\" already has a field called \"%s\"", parent.GetName(), s)
+			}
+		}
+		return nil
+	}
 	fieldNameForm := widget.NewFormItem("field name", fieldNameEntry)
-	typeSelectEntry := widget.NewSelectEntry(model.GetTypesNames())
-	typeSelectForm := widget.NewFormItem("type", typeSelectEntry)
+	typeSelect := widget.NewSelect(model.GetTypesNames(), nil)
+	typeSelectForm := widget.NewFormItem("type", typeSelect)
 
 	// var col color.Color
 	// col = &color.RGBA{0,0,0,255}
@@ -35,8 +43,8 @@ func NewAddFieldToTypeWindow(parent model.ICompositeType) {
 	form := widget.NewForm(fieldNameForm, typeSelectForm)
 	form.OnSubmit = func() {
 		fieldName := fieldNameEntry.Text
-		fieldType := typeSelectEntry.Text
-		if err := AddFieldToType(parent, fieldName, fieldType); err != nil {
+		fieldType := typeSelect.Selected
+		if err := AddFieldToType(parent, fieldName, fieldType); err == nil {
 			// IDtoColor[BuildCompID(fieldName, fieldType)] = col
 			w.Close()
 		}

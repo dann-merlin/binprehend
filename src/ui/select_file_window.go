@@ -1,5 +1,6 @@
 package ui
 
+/*
 import (
 	"errors"
 	"github.com/dann-merlin/binprehend/src/utils"
@@ -35,6 +36,7 @@ func NewSelectFileWindow() fyne.Window {
 				utils.ErrorWithWindow(err, w)
 			}
 		}, w)
+		w.Show()
 		fileDialog.Show()
 	})
 	errorTestButton := widget.NewButton("Test Error", func() {
@@ -47,3 +49,4 @@ func NewSelectFileWindow() fyne.Window {
 	return w
 }
 
+*/

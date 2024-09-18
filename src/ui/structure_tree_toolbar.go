@@ -19,16 +19,22 @@ type StructureTreeToolbar struct {
 	selectedType model.IType
 }
 
-func (stt *StructureTreeToolbar) SetSelectedType(t model.IType) {
+func (stt *StructureTreeToolbar) SetSelectedType(t model.IType, isRoot bool) {
 	stt.selectedType = t
 	if t == nil {
 		stt.addChildButton.Disable()
 		stt.removeButton.Disable()
 		return
 	}
-	stt.removeButton.Enable()
+	if isRoot {
+		stt.removeButton.Disable()
+	} else {
+		stt.removeButton.Enable()
+	}
 	if _, ok := t.(model.ICompositeType); ok {
 		stt.addChildButton.Enable()
+	} else {
+		stt.addChildButton.Disable()
 	}
 }
 

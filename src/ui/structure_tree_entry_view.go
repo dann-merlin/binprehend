@@ -19,7 +19,7 @@ type STVEntry struct {
 func (e *STVEntry) Update(field string, n model.IType) {
 	byteLen := n.GetByteLen()
 	byteLenString := fmt.Sprintf("%d bytes", byteLen)
-	e.nameLabel.SetText(fmt.Sprintf("%s (%s)", field, byteLenString))
+	e.nameLabel.SetText(fmt.Sprintf("[%s] %s (%s)", n.GetName(), field, byteLenString))
 }
 
 func NewSTVEntry(branch bool) *STVEntry {

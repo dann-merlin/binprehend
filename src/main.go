@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flag"
+	// "flag"
 	"log"
 
 	"github.com/dann-merlin/binprehend/src/state"
@@ -12,20 +12,15 @@ import (
 )
 
 func main() {
-	filename := flag.String("file", "", "Input file to open")
-	flag.Parse()
+	// filename := flag.String("file", "", "Input file to open")
+	// flag.Parse()
 
 	fyne.SetCurrentApp(app.NewWithID(state.AppID))
 
-	if *filename != "" {
-		w, err := ui.NewMainWindow(*filename)
-		if err != nil {
-			log.Fatalf("Failed to start app: %W", err)
-		}
-		w.Show()
-	} else {
-		w := ui.NewSelectFileWindow()
-		w.Show()
+	w, err := ui.NewMainWindow()
+	if err != nil {
+		log.Fatalf("Failed to start app: %W", err)
 	}
+	w.Show()
 	fyne.CurrentApp().Run()
 }
