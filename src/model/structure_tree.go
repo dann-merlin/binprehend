@@ -20,6 +20,7 @@ type ICompositeType interface {
 	IType
 	GetFields() []Field
 	AddField(*Field) error
+	GetOffsetForFieldIndex(index int) uint64
 }
 
 type basicType struct {
@@ -41,7 +42,6 @@ func (t *basicType) GetByteLen() uint64 {
 
 func NewPrimitive(name string, byteLen uint64) *PrimitiveType {
 	c := &PrimitiveType{basicType{name, byteLen}}
-	register(c)
 	return c
 }
 
@@ -49,10 +49,6 @@ type CompositeType struct {
 	basicType
 	fields []Field
 }
-
-// func (t *CompositeType) IsPrimitive() bool {
-// 	return false
-// }
 
 func (t *CompositeType) AddField(f *Field) error {
 	for _, existing := range t.fields {
@@ -75,20 +71,29 @@ func (t *CompositeType) recomputeLen() {
 	t.byteLen = result
 }
 
+func (t *CompositeType) GetOffsetForFieldIndex(index int) uint64 {
+	offset := uint64(0)
+	for i, f := range t.GetFields() {
+		if i == index {
+			break
+		}
+		offset += f.Type.GetByteLen()
+	}
+	return offset
+}
+
 func (t *CompositeType) GetFields() []Field {
 	return t.fields
 }
 
 func NewCompositeType(name string) ICompositeType {
-	c := &CompositeType{basicType{name, 0},[]Field{}}
-	register(c)
+	c := &CompositeType{basicType{name, 0}, []Field{}}
 	return c
 }
 
 func NewCompositeTypeWithFields(name string, fields []Field) ICompositeType {
 	c := &CompositeType{basicType{name, 0}, fields}
 	c.recomputeLen()
-	register(c)
 	return c
 }
 
@@ -114,7 +119,10 @@ func GetBuiltinTypes() map[string]IType {
 
 var customTypes = map[string]IType{}
 
-func register(t IType) {
+func Register(t IType) {
+	if _, ok := customTypes[t.GetName()]; !ok {
+		return
+	}
 	customTypes[t.GetName()] = t
 	callbackTypesChanged()
 }

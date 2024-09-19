@@ -36,10 +36,10 @@ func (fer *FERenderer) Objects() []fyne.CanvasObject {
 
 func (fer *FERenderer) Refresh() {
 	fer.fieldBox.RemoveAll()
-	offset := uint64(0)
+	tempType := model.NewCompositeTypeWithFields("temptype", fer.fe.GetFields())
 	for i, field := range fer.fe.fields {
 		fv := container.NewGridWithColumns(5)
-		fv.Add(widget.NewLabel(fmt.Sprintf("[%d] %d", offset, (i+1))))
+		fv.Add(widget.NewLabel(fmt.Sprintf("[%d] %d", tempType.GetOffsetForFieldIndex(i), (i+1))))
 		ne := NewFieldNameEntry()
 		ne.Text = field.Name
 		ne.OnChanged = func(s string) {
@@ -74,7 +74,6 @@ func (fer *FERenderer) Refresh() {
 		}
 		fv.Add(down)
 		fer.fieldBox.Add(fv)
-		offset += field.Type.GetByteLen()
 	}
 	fer.vbox.Refresh()
 }
@@ -152,11 +151,19 @@ func (fe *FieldsEditor) MoveDownAt(i int) {
 	fe.Refresh()
 }
 
+func (fe *FieldsEditor) GetFields() []model.Field {
+	res := []model.Field{}
+	for _, f := range fe.fields {
+		res = append(res, *f)
+	}
+	return res
+}
+
 func (fe *FieldsEditor) CreateRenderer() fyne.WidgetRenderer {
 	return NewFERenderer(fe)
 }
 
-func NewCreatePrimitiveForm(stvTabs *container.AppTabs) *widget.Form {
+func NewCreatePrimitiveForm(stvTabs *container.DocTabs) *widget.Form {
 	primitiveForm := widget.NewForm()
 	nameEntry := NewTypeNameEntry()
 	lengthEntry := NewLengthEntry()
@@ -166,26 +173,51 @@ func NewCreatePrimitiveForm(stvTabs *container.AppTabs) *widget.Form {
 		if err != nil {
 			return
 		}
-		model.NewPrimitive(name, byteLen)
+		t := model.NewPrimitive(name, byteLen)
+		model.Register(t)
 	}
 	primitiveForm.Append("Name", nameEntry)
 	primitiveForm.Append("Bytelength", lengthEntry)
 	return primitiveForm
 }
 
-func NewCreateCompositeForm(stvTabs *container.AppTabs) *widget.Form {
+// func parsePaddingStr(paddingStr string) uint8 {
+// 	padding := uint8(0)
+// 	if paddingStr != "None" {
+// 		paddingUint64, err := strconv.ParseUint(strings.Split(paddingStr, " ")[0], 10, 8)
+// 		if err != nil {
+// 			fmt.Println("Failed to parse padding: %W", err)
+// 			return 0
+// 		}
+// 		padding = uint8(paddingUint64)
+// 	}
+// 	return padding
+// }
+
+func NewCreateCompositeForm(stvTabs *container.DocTabs) *widget.Form {
 	compositeForm := widget.NewForm()
 	nameEntry := NewTypeNameEntry()
+	// padding := &uint8(0)
+	// selectPadding := widget.NewSelect([]string{"None", "2 Bytes", "4 Bytes", "8 Bytes", "16 Bytes"}, func(s string) {
+	// 	padding = parsePaddingStr(s)
+	// })
+	// selectPadding.SetSelected("None")
+	fieldsEditor := NewFieldsEditor()
 	compositeForm.OnSubmit = func() {
 		name := nameEntry.Text
-		model.NewCompositeTypeWithFields(name, []model.Field{})
+		// paddingStr := selectPadding.Selected
+		// padding = parsePaddingStr(paddingStr)
+		t := model.NewCompositeTypeWithFields(name, fieldsEditor.GetFields())
+		model.Register(t)
 	}
+
 	compositeForm.Append("Name", nameEntry)
-	compositeForm.Append("Fields", NewFieldsEditor())
+	// compositeForm.Append("Padding", selectPadding)
+	compositeForm.Append("Fields", fieldsEditor)
 	return compositeForm
 }
 
-func NewCreateTypeForm(stvTabs *container.AppTabs) fyne.CanvasObject {
+func NewCreateTypeForm(stvTabs *container.DocTabs) fyne.CanvasObject {
 	tabs := container.NewAppTabs()
 
 	compositeEntry := container.NewTabItem("Composite", NewCreateCompositeForm(stvTabs))
