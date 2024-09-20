@@ -89,7 +89,7 @@ func update(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
 	}
 }
 
-func (stv *StructureTreeView) onTypeChanged(t model.IType) {
+func (stv *StructureTreeView) onTypeChanged() {
 	// id := string(idNmbr)
 	stv.tree.Refresh()
 }
@@ -106,7 +106,7 @@ func NewStructureTreeView(t model.IType) *StructureTreeView {
 	tree.Root = BuildCompID("root", t.GetName())
 	stv.tree = tree
 	tree.OnSelected = stv.onSelected
-	model.AddChangedCallback(stv.onTypeChanged)
+	model.RegisterCallback(model.TYPES_CHANGED, stv.onTypeChanged)
 	stv.ExtendBaseWidget(stv)
 	return stv
 }

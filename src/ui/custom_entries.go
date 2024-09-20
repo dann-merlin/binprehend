@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/dann-merlin/binprehend/src/model"
-	"github.com/dann-merlin/binprehend/src/utils"
 
 	"fyne.io/fyne/v2/widget"
 )
@@ -29,14 +28,14 @@ func NewLengthEntry() *widget.Entry {
 
 func NewFieldNameEntry() *widget.Entry {
 	n := widget.NewEntry()
-	n.Validator = utils.FieldNameValidate
+	n.Validator = model.FieldNameValidate
 	n.SetValidationError(n.Validate())
 	return n
 }
 
 func NewTypeNameEntry() *widget.Entry {
 	e := widget.NewEntry()
-	e.Validator = utils.TypeNameValidate
+	e.Validator = model.TypeNameValidate
 	e.SetValidationError(e.Validate())
 	return e
 }

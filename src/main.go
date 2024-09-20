@@ -19,8 +19,9 @@ func main() {
 
 	w, err := ui.NewMainWindow()
 	if err != nil {
-		log.Fatalf("Failed to start app: %W", err)
+		log.Fatalf("Failed to start app: %s", err.Error())
 	}
 	w.Show()
+	state.SetCurrentWindown(w)
 	fyne.CurrentApp().Run()
 }

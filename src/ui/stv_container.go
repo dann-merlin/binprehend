@@ -8,32 +8,37 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-
-func NewSTVContainer() fyne.CanvasObject {
-	tabs := container.NewDocTabs()
+func NewCreatePage(stvTabs *container.DocTabs) *fyne.Container {
 	openTypeForm := widget.NewForm()
 	typeSelect:= widget.NewSelect(model.GetTypesNames(), func (s string) {
 		openTypeForm.Enable()
 	})
-	model.RegisterTypesChangedCallback(func() {
+	model.RegisterCallback(model.TYPES_CHANGED, func() {
 		typeSelect.Options = model.GetTypesNames()
 		typeSelect.Refresh()
 	})
 	typeSelectForm := widget.NewFormItem("Type", typeSelect)
 	openTypeForm.AppendItem(typeSelectForm)
 	openTypeForm.Disable()
-	// openTypeForm.CancelText = ""
 	openTypeForm.SubmitText = "Open"
 	openTypeForm.OnSubmit = func () {
-		// stvItem := container.NewTabItem(typeSelect.Selected, )
-		tabs.Selected().Text = typeSelect.Selected
-		tabs.Selected().Content = NewStructureTreeView(model.GetType(typeSelect.Selected))
-		// tabs.Append(stvItem)
-		// tabs.Select(stvItem)
+		stvTabs.Selected().Text = typeSelect.Selected
+		stvTabs.Selected().Content = NewStructureTreeView(model.GetType(typeSelect.Selected))
 	}
-	openPage := container.NewVBox(widget.NewLabel("Open existing type"), openTypeForm, widget.NewLabel("Create new type"), NewCreateTypeForm(tabs))
+	page := container.NewVBox(widget.NewLabel("Open existing type"), openTypeForm, widget.NewLabel("Create new type"), NewCreateTypeForm(stvTabs))
+	return page
+}
+
+func NewSTVContainer() fyne.CanvasObject {
+	tabs := container.NewDocTabs()
 	tabs.CreateTab = func() *container.TabItem {
-		return container.NewTabItem("(Select Type)", openPage)
+		return container.NewTabItem("(Select Type)", NewCreatePage(tabs))
 	}
+	tabs.OnClosed = func(item *container.TabItem) {
+		if len(tabs.Items) == 0 {
+			tabs.Append(tabs.CreateTab())
+		}
+	}
+	tabs.Append(tabs.CreateTab())
 	return tabs
 }

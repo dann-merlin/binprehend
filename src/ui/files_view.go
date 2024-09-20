@@ -22,7 +22,7 @@ func NewFileView(f *file.File) (fyne.CanvasObject, error) {
 	const offset = 0
 	content, err := f.GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create file view: %W", err)
+		return nil, fmt.Errorf("Failed to create file view: %w", err)
 	}
 
 	ds := model.NewDataSnippet(content, uint64(len(content)), offset)
@@ -37,7 +37,7 @@ func NewFileView(f *file.File) (fyne.CanvasObject, error) {
 	return c, nil
 }
 
-func NewFilesView(mainWindow *fyne.Window) fyne.CanvasObject {
+func NewFilesView(mainWindow fyne.Window) fyne.CanvasObject {
 	var tabs *container.AppTabs
 	openDataFileButton := widget.NewButtonWithIcon("Open data file", theme.FolderOpenIcon(), func() {
 		dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
@@ -52,19 +52,19 @@ func NewFilesView(mainWindow *fyne.Window) fyne.CanvasObject {
 				filePath := fileURI.Path()
 				f, err := file.NewFile(filePath)
 				if err != nil {
-					utils.ErrorWithWindow(fmt.Errorf("Failed to open file: %W", err), mainWindow)
+					utils.ErrorWithWindow(fmt.Errorf("Failed to open file: %w", err), mainWindow)
 					return
 				}
 				fileView, err := NewFileView(f)
 				if err != nil {
-					utils.ErrorWithWindow(fmt.Errorf("Failed to create FileView: %W", err), mainWindow)
+					utils.ErrorWithWindow(fmt.Errorf("Failed to create FileView: %w", err), mainWindow)
 					return
 				}
 				item := container.NewTabItem(fileURI.Name(), fileView)
 				tabs.Append(item)
 				tabs.Select(item)
 			}
-		}, *mainWindow).Show()
+		}, mainWindow).Show()
 	})
 	emptyPage := container.NewVBox(openDataFileButton)
 	tabs = container.NewAppTabs(container.NewTabItemWithIcon("", theme.ContentAddIcon(), emptyPage))

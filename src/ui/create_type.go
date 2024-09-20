@@ -9,6 +9,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -38,7 +39,7 @@ func (fer *FERenderer) Refresh() {
 	fer.fieldBox.RemoveAll()
 	tempType := model.NewCompositeTypeWithFields("temptype", fer.fe.GetFields())
 	for i, field := range fer.fe.fields {
-		fv := container.NewGridWithColumns(5)
+		fv := container.NewHBox()
 		fv.Add(widget.NewLabel(fmt.Sprintf("[%d] %d", tempType.GetOffsetForFieldIndex(i), (i+1))))
 		ne := NewFieldNameEntry()
 		ne.Text = field.Name
@@ -73,7 +74,11 @@ func (fer *FERenderer) Refresh() {
 			down.Disable()
 		}
 		fv.Add(down)
-		fer.fieldBox.Add(fv)
+		remove := widget.NewButtonWithIcon("", theme.ContentRemoveIcon(), func() {
+			fer.fe.RemoveAt(i)
+		})
+		fv.Add(remove)
+		fer.fieldBox.Add(container.NewCenter(fv))
 	}
 	fer.vbox.Refresh()
 }
@@ -103,9 +108,9 @@ func NewFieldsEditor() *FieldsEditor {
 func (fe *FieldsEditor) Validate() error {
 	var namesSet = map[string]struct{}{}
 	for i, field := range fe.fields {
-		err := utils.FieldNameValidate(field.Name)
+		err := model.FieldNameValidate(field.Name)
 		if err != nil {
-			err := fmt.Errorf("Field %d: %W", i+1, err)
+			err := fmt.Errorf("Field %d: %w", i+1, err)
 			fe.setValidation(err)
 			return err
 		}
@@ -151,12 +156,26 @@ func (fe *FieldsEditor) MoveDownAt(i int) {
 	fe.Refresh()
 }
 
+func(fe *FieldsEditor) RemoveAt(i int) {
+	var tail = []*model.Field{}
+	if i < len(fe.fields) - 1 {
+		tail = fe.fields[i+1:]
+	}
+	fe.fields = append(fe.fields[:i], tail...)
+	fe.Refresh()
+}
+
 func (fe *FieldsEditor) GetFields() []model.Field {
 	res := []model.Field{}
 	for _, f := range fe.fields {
 		res = append(res, *f)
 	}
 	return res
+}
+
+func (fe *FieldsEditor) Reset() {
+	fe.fields = []*model.Field{}
+	fe.Refresh()
 }
 
 func (fe *FieldsEditor) CreateRenderer() fyne.WidgetRenderer {
@@ -167,17 +186,35 @@ func NewCreatePrimitiveForm(stvTabs *container.DocTabs) *widget.Form {
 	primitiveForm := widget.NewForm()
 	nameEntry := NewTypeNameEntry()
 	lengthEntry := NewLengthEntry()
+	shouldAutoOpen := binding.NewBool()
+	shouldAutoOpen.Set(true)
+	checkAutoOpen := widget.NewCheckWithData("Automatically open created type", shouldAutoOpen)
 	primitiveForm.OnSubmit = func () {
 		name := nameEntry.Text
+		err := model.TypeNameValidate(name)
+		if err != nil {
+			utils.Error(err)
+			return
+		}
 		byteLen, err := strconv.ParseUint(lengthEntry.Text, 0, 64)
 		if err != nil {
 			return
 		}
 		t := model.NewPrimitive(name, byteLen)
 		model.Register(t)
+		if b, err := shouldAutoOpen.Get(); b && err == nil {
+			stvTabs.Selected().Text = t.GetName()
+			stvTabs.Selected().Content = NewStructureTreeView(t)
+		}
+		nameEntry.SetText("")
+		lengthEntry.SetText("")
+		primitiveForm.Validate()
+		nameEntry.SetValidationError(nil)
+		lengthEntry.SetValidationError(nil)
 	}
 	primitiveForm.Append("Name", nameEntry)
 	primitiveForm.Append("Bytelength", lengthEntry)
+	primitiveForm.Append("", checkAutoOpen)
 	return primitiveForm
 }
 
@@ -186,7 +223,7 @@ func NewCreatePrimitiveForm(stvTabs *container.DocTabs) *widget.Form {
 // 	if paddingStr != "None" {
 // 		paddingUint64, err := strconv.ParseUint(strings.Split(paddingStr, " ")[0], 10, 8)
 // 		if err != nil {
-// 			fmt.Println("Failed to parse padding: %W", err)
+// 			fmt.Println("Failed to parse padding: %w", err)
 // 			return 0
 // 		}
 // 		padding = uint8(paddingUint64)
@@ -202,18 +239,34 @@ func NewCreateCompositeForm(stvTabs *container.DocTabs) *widget.Form {
 	// 	padding = parsePaddingStr(s)
 	// })
 	// selectPadding.SetSelected("None")
+	shouldAutoOpen := binding.NewBool()
+	shouldAutoOpen.Set(true)
+	checkAutoOpen := widget.NewCheckWithData("Automatically open created type", shouldAutoOpen)
 	fieldsEditor := NewFieldsEditor()
 	compositeForm.OnSubmit = func() {
 		name := nameEntry.Text
+		err := model.TypeNameValidate(name)
+		if err != nil {
+			utils.Error(err)
+			return
+		}
 		// paddingStr := selectPadding.Selected
 		// padding = parsePaddingStr(paddingStr)
 		t := model.NewCompositeTypeWithFields(name, fieldsEditor.GetFields())
 		model.Register(t)
+		if b, err := shouldAutoOpen.Get(); b && err == nil {
+			stvTabs.Selected().Text = t.GetName()
+			stvTabs.Selected().Content = NewStructureTreeView(t)
+		}
+		nameEntry.SetText("")
+		fieldsEditor.Reset()
+		nameEntry.SetValidationError(nil)
 	}
 
 	compositeForm.Append("Name", nameEntry)
 	// compositeForm.Append("Padding", selectPadding)
 	compositeForm.Append("Fields", fieldsEditor)
+	compositeForm.Append("", checkAutoOpen)
 	return compositeForm
 }
 

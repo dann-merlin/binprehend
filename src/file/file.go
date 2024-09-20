@@ -14,11 +14,11 @@ type File struct {
 func NewFile(filepath string) (*File, error) {
 	fd, err := os.Open(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open file %s: %W", filepath, err)
+		return nil, fmt.Errorf("Failed to open file %s: %w", filepath, err)
 	}
 	filesize, err := fd.Seek(0, io.SeekEnd)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to seek end of file %s: %W", filepath, err)
+		return nil, fmt.Errorf("Failed to seek end of file %s: %w", filepath, err)
 	}
 	return &File{Fd: fd, Size: uint64(filesize)}, nil
 }
@@ -31,7 +31,7 @@ func (f File) GetSnippet(offset uint64, length uint64) ([]byte, error) {
 	buffer := make([]byte, length)
 	n, err := f.Fd.Read(buffer)
 	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("Only managed to read %d bytes: %W", n, err)
+		return nil, fmt.Errorf("Only managed to read %d bytes: %w", n, err)
 	}
 	if uint64(n) < length {
 		newBuffer := make([]byte, n)
