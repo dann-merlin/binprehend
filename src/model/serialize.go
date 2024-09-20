@@ -32,7 +32,7 @@ func (f *Field) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func SerializeTypes() ([]byte, error) {
+func prepareTypes() (map[string]interface{}, error) {
 	tempMap := make(map[string]interface{})
 
 	for key, itype := range customTypes {
@@ -62,7 +62,23 @@ func SerializeTypes() ([]byte, error) {
 		tempMap[key] = serializedType
 	}
 
-	return json.Marshal(tempMap)
+	return tempMap, nil
+}
+
+func SerializeTypes() ([]byte, error) {
+	types, err := prepareTypes()
+	if err != nil {
+		return []byte{}, err
+	}
+	withVersion := struct {
+		Version string               `json:"version"`
+		Types map[string]interface{} `json:"types"`
+	}{
+		Version: LATEST_SERIALIZE_VERSION,
+		Types: types,
+	}
+
+	return json.Marshal(withVersion)
 }
 
 func resolveTypes(types map[string]IType) error {
@@ -78,13 +94,9 @@ func resolveTypes(types map[string]IType) error {
 	return nil
 }
 
-func DeserializeTypes(data []byte) (map[string]IType, error) {
-	tempMap := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &tempMap); err != nil {
-		return nil, err
-	}
+func deserializeTypesAfterVersion(unparsedTypes map[string]json.RawMessage) (map[string]IType, error) {
 	types := make(map[string]IType)
-	for key, rawValue := range tempMap {
+	for key, rawValue := range unparsedTypes {
 		var typeFieldExtract struct {
 			Type string `json:"type"`
 		}
@@ -114,4 +126,22 @@ func DeserializeTypes(data []byte) (map[string]IType, error) {
 		return nil, err
 	}
 	return types, nil
+}
+
+func DeserializeTypes(data []byte) (map[string]IType, error) {
+	withVersion := struct {
+		Version string                   `json:"version"`
+		Types map[string]json.RawMessage `json:"types"`
+	}{}
+
+	err := json.Unmarshal(data, &withVersion)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal to version struct: %w", err)
+	}
+
+	if withVersion.Version != LATEST_SERIALIZE_VERSION {
+		return nil, fmt.Errorf("This types file seems to have a different Version (%s) than the one supported (%s)", withVersion.Version, LATEST_SERIALIZE_VERSION)
+	}
+
+	return deserializeTypesAfterVersion(withVersion.Types)
 }

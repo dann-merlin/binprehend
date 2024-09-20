@@ -186,6 +186,9 @@ func NewCreatePrimitiveForm(stvTabs *container.DocTabs) *widget.Form {
 	primitiveForm := widget.NewForm()
 	nameEntry := NewTypeNameEntry()
 	lengthEntry := NewLengthEntry()
+	signedBinding := binding.NewBool()
+	signedBinding.Set(true)
+	checkSigned := widget.NewCheckWithData("Signed", signedBinding)
 	shouldAutoOpen := binding.NewBool()
 	shouldAutoOpen.Set(true)
 	checkAutoOpen := widget.NewCheckWithData("Automatically open created type", shouldAutoOpen)
@@ -193,14 +196,20 @@ func NewCreatePrimitiveForm(stvTabs *container.DocTabs) *widget.Form {
 		name := nameEntry.Text
 		err := model.TypeNameValidate(name)
 		if err != nil {
-			utils.Error(err)
+			utils.Error(fmt.Errorf("Failed to validate type name: %w", err))
 			return
 		}
 		byteLen, err := strconv.ParseUint(lengthEntry.Text, 0, 64)
 		if err != nil {
+			utils.Error(fmt.Errorf("Failed to parse byte len entry: %w", err))
 			return
 		}
-		t := model.NewPrimitive(name, byteLen)
+		signed, err := signedBinding.Get()
+		if err != nil {
+			utils.Error(fmt.Errorf("Failed to get signed binding: %w", err))
+			return
+		}
+		t := model.NewPrimitive(name, byteLen, signed)
 		model.Register(t)
 		if b, err := shouldAutoOpen.Get(); b && err == nil {
 			stvTabs.Selected().Text = t.GetName()
@@ -214,6 +223,7 @@ func NewCreatePrimitiveForm(stvTabs *container.DocTabs) *widget.Form {
 	}
 	primitiveForm.Append("Name", nameEntry)
 	primitiveForm.Append("Bytelength", lengthEntry)
+	primitiveForm.Append("", checkSigned)
 	primitiveForm.Append("", checkAutoOpen)
 	return primitiveForm
 }

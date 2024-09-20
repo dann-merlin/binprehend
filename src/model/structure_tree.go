@@ -62,6 +62,7 @@ type basicType struct {
 
 type PrimitiveType struct {
 	basicType
+	Signed bool
 }
 
 func (t *basicType) GetName() string {
@@ -72,8 +73,8 @@ func (t *basicType) GetByteLen() uint64 {
 	return t.ByteLen
 }
 
-func NewPrimitive(name string, byteLen uint64) *PrimitiveType {
-	c := &PrimitiveType{basicType{name, byteLen}}
+func NewPrimitive(name string, byteLen uint64, signed bool) *PrimitiveType {
+	c := &PrimitiveType{basicType{name, byteLen}, signed}
 	return c
 }
 
@@ -130,15 +131,35 @@ func NewCompositeTypeWithFields(name string, fields []Field) ICompositeType {
 }
 
 func Unsigned8() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned8",  1}}
+	return &PrimitiveType{basicType{"unsigned8",  1}, false}
 }
 
 func Unsigned16() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned16", 2}}
+	return &PrimitiveType{basicType{"unsigned16", 2}, false}
 }
 
 func Unsigned32() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned32", 4}}
+	return &PrimitiveType{basicType{"unsigned32", 4}, false}
+}
+
+func Unsigned64() *PrimitiveType {
+	return &PrimitiveType{basicType{"unsigned64", 8}, false}
+}
+
+func Signed8() *PrimitiveType {
+	return &PrimitiveType{basicType{"signed8",  1}, true}
+}
+
+func Signed16() *PrimitiveType {
+	return &PrimitiveType{basicType{"signed16", 2}, true}
+}
+
+func Signed32() *PrimitiveType {
+	return &PrimitiveType{basicType{"signed32", 4}, true}
+}
+
+func Signed64() *PrimitiveType {
+	return &PrimitiveType{basicType{"signed64", 8}, true}
 }
 
 func GetBuiltinTypes() map[string]IType {
@@ -146,6 +167,11 @@ func GetBuiltinTypes() map[string]IType {
 	builtins["unsigned8"]  = Unsigned8()
 	builtins["unsigned16"] = Unsigned16()
 	builtins["unsigned32"] = Unsigned32()
+	builtins["unsigned64"] = Unsigned64()
+	builtins["signed8"]  = Signed8()
+	builtins["signed16"] = Signed16()
+	builtins["signed32"] = Signed32()
+	builtins["signed64"] = Signed64()
 	return builtins
 }
 
