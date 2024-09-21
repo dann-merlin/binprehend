@@ -10,30 +10,56 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-type STVEntry struct {
+type STVEntry interface {
+	fyne.CanvasObject
+	Update(model.Field)
+}
+
+type STVStructureEntry struct {
 	widget.BaseWidget
-	nameLabel *widget.Label
-	numFieldsLabel *widget.Label
+	field model.Field
 }
 
-func (e *STVEntry) Update(field string, n model.IType) {
-	byteLen := n.GetByteLen()
-	byteLenString := fmt.Sprintf("%d bytes", byteLen)
-	e.nameLabel.SetText(fmt.Sprintf("[%s] %s (%s)", n.GetName(), field, byteLenString))
+func (e *STVStructureEntry) Update(field model.Field) {
+	e.field = field
+	e.Refresh()
 }
 
-func NewSTVEntry(branch bool) *STVEntry {
-	// aboveButton := widget.NewButton("+", func() {fmt.Println("add above!")})
-	// belowButton := widget.NewButton("+", func() {fmt.Println("add below!")})
-	// addButtons := container.NewVBox(aboveButton, belowButton)
-	nameLabel := widget.NewLabel("Uninitialized")
-	numFieldsLabel := widget.NewLabel("")
-	e := &STVEntry{nameLabel: nameLabel, numFieldsLabel: numFieldsLabel}
+func NewSTVStructureEntry() *STVStructureEntry {
+	e := &STVStructureEntry{}
 	e.ExtendBaseWidget(e)
 	return e
 }
 
-func (e *STVEntry) CreateRenderer() fyne.WidgetRenderer {
-	cont := container.NewBorder(nil,nil, nil, e.numFieldsLabel, e.nameLabel)
+func (e *STVStructureEntry) CreateRenderer() fyne.WidgetRenderer {
+	byteLen := e.field.Type.GetByteLen()
+	byteLenString := fmt.Sprintf("%d bytes", byteLen)
+	nameLabel := widget.NewLabel(fmt.Sprintf("[%s] %s (%s)", e.field.Type.GetName(), e.field, byteLenString))
+	numFieldsLabel := widget.NewLabel("")
+	cont := container.NewBorder(nil, nil, nil, numFieldsLabel, nameLabel)
+	return widget.NewSimpleRenderer(cont)
+}
+
+type STVInstanceEntry struct {
+	widget.BaseWidget
+	field model.Field
+}
+
+func NewSTVInstanceEntry() *STVInstanceEntry {
+	e := &STVInstanceEntry{}
+	e.ExtendBaseWidget(e)
+	return e
+}
+
+
+func (e *STVInstanceEntry) Update(field model.Field) {
+}
+
+func (e *STVInstanceEntry) CreateRenderer() fyne.WidgetRenderer {
+	byteLen := e.field.Type.GetByteLen()
+	byteLenString := fmt.Sprintf("%d bytes", byteLen)
+	nameLabel := widget.NewLabel(fmt.Sprintf("[%s] %s (%s)", e.field.Type.GetName(), e.field, byteLenString))
+	numFieldsLabel := widget.NewLabel("")
+	cont := container.NewBorder(nil, nil, nil, numFieldsLabel, nameLabel)
 	return widget.NewSimpleRenderer(cont)
 }

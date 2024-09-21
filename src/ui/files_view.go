@@ -30,9 +30,9 @@ func NewFileView(f *file.File) (fyne.CanvasObject, error) {
 	addressView := NewAddressView(uint64(len(content)), offset, cols)
 	hexView := NewHexView(ds, cols)
 	asciiView := NewAsciiView(ds, cols)
-	instanceView := NewInstanceView(ds)
+	// instanceView := NewInstanceView(ds)
 	hbox := container.NewHBox(addressView, hexView, asciiView)
-	vbox := container.NewVBox(hbox, instanceView)
+	vbox := container.NewVBox(hbox)
 	return vbox, nil
 }
 

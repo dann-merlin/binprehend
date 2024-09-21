@@ -120,6 +120,10 @@ func (fe *FieldsEditor) Validate() error {
 			return err
 		}
 		namesSet[field.Name] = struct{}{}
+
+		if field.Type == nil {
+			return fmt.Errorf("You need to select a type!")
+		}
 	}
 	fe.setValidation(nil)
 	return nil
@@ -142,7 +146,7 @@ func (fe *FieldsEditor) Refresh() {
 }
 
 func (fe *FieldsEditor) AddField() {
-	fe.fields = append(fe.fields, &model.Field{Name: "", Type: model.Unsigned8()})
+	fe.fields = append(fe.fields, &model.Field{Name: "", Type: nil})
 	fe.Refresh()
 }
 

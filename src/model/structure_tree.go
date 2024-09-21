@@ -3,17 +3,64 @@ package model
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/dann-merlin/binprehend/src/utils"
 	"github.com/dann-merlin/binprehend/src/state"
+
+	"fyne.io/fyne/v2/data/binding"
 )
 
 type IType interface {
+	binding.DataItem
+	GenerateDataTree() *TypeTree
 	GetName() string
 	GetByteLen() uint64
 }
 
+type TypeTree struct {
+	Children map[string][]string
+	Items map[string]IType
+	listeners []binding.DataListener
+}
+
+func (tt *TypeTree) AddListener(l binding.DataListener) {
+	tt.listeners = append(tt.listeners, l)
+}
+
+func (tt *TypeTree) RemoveListener(l binding.DataListener) {
+	tt.listeners = utils.SliceRemove(tt.listeners, l)
+}
+
+func (tt *TypeTree) GetItem(id string) (binding.DataItem, error) {
+	item, ok := tt.Items[id]
+	if !ok {
+		return nil, fmt.Errorf("No such id in type tree: %s", id)
+	}
+	return item, nil
+}
+
+func (tt *TypeTree) ChildIDs(id string) []string {
+	if children, ok := tt.Children[id]; ok {
+		return children
+	}
+	return []string{}
+}
+
+type listenerType struct {
+	listeners []binding.DataListener
+}
+
+func (t *listenerType) AddListener(l binding.DataListener) {
+	t.listeners = append(t.listeners, l)
+}
+
+func (t *listenerType) RemoveListener(l binding.DataListener) {
+	t.listeners = utils.SliceRemove(t.listeners, l)
+}
+
 type Field struct {
+	binding.DataItem
 	Name string `json:"name"`
 	Type IType  `json:"type"`
 }
@@ -41,7 +88,12 @@ type ICompositeType interface {
 }
 
 type UnresolvedType struct {
+	listenerType
 	Name string `json:"name"`
+}
+
+func (t *UnresolvedType) GenerateDataTree() *TypeTree {
+	return &TypeTree{}
 }
 
 func (t *UnresolvedType) GetName() string {
@@ -53,10 +105,11 @@ func (t *UnresolvedType) GetByteLen() uint64 {
 }
 
 func NewUnresolvedFromIType(t IType) UnresolvedType {
-	return UnresolvedType{t.GetName()}
+	return UnresolvedType{Name: t.GetName()}
 }
 
 type basicType struct {
+	listenerType
 	Name string
 	ByteLen uint64
 }
@@ -74,14 +127,48 @@ func (t *basicType) GetByteLen() uint64 {
 	return t.ByteLen
 }
 
+func (t *basicType) GenerateDataTree() *TypeTree {
+	return &TypeTree{Items: map[string]IType{
+		t.GetName(): t,
+	}, Children: map[string][]string{
+		t.GetName(): {},
+	},}
+}
+
 func NewPrimitive(name string, byteLen uint64, signed bool) *PrimitiveType {
-	c := &PrimitiveType{basicType{name, byteLen}, signed}
+	c := &PrimitiveType{basicType{Name: name, ByteLen: byteLen}, signed}
 	return c
 }
 
 type CompositeType struct {
 	basicType
 	Fields []Field `json:"fields"`
+}
+
+func colonConcat(newParent, oldParent string) string {
+	return strings.Join([]string{newParent, oldParent}, ":")
+}
+
+func (t *CompositeType) GenerateDataTree() *TypeTree {
+	childrenMap := map[string][]string{}
+	items := map[string]IType{}
+	items[t.GetName()] = t
+	for _, field := range t.GetFields() {
+		fieldTree := field.Type.GenerateDataTree()
+		fieldPrefix := colonConcat(t.GetName(), field.Name)
+		for id, item := range fieldTree.Items {
+			items[colonConcat(fieldPrefix, id)] = item
+		}
+		for parent, children := range fieldTree.Children {
+			reparentedChildren := []string{}
+			for _, e := range children {
+				reparentedChildren = append(reparentedChildren, colonConcat(fieldPrefix, e))
+			}
+			childrenMap[colonConcat(fieldPrefix, parent)] = reparentedChildren
+		}
+	}
+	tt := &TypeTree{Children: childrenMap, Items: items}
+	return tt
 }
 
 func (t *CompositeType) AddField(f *Field) error {
@@ -121,58 +208,26 @@ func (t *CompositeType) GetFields() []Field {
 }
 
 func NewCompositeType(name string) ICompositeType {
-	c := &CompositeType{basicType{name, 0}, []Field{}}
+	c := &CompositeType{basicType{Name: name, ByteLen: 0}, []Field{}}
 	return c
 }
 
 func NewCompositeTypeWithFields(name string, fields []Field) ICompositeType {
-	c := &CompositeType{basicType{name, 0}, fields}
+	c := &CompositeType{basicType{Name: name, ByteLen: 0}, fields}
 	c.recomputeLen()
 	return c
 }
 
-func Unsigned8() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned8",  1}, false}
-}
-
-func Unsigned16() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned16", 2}, false}
-}
-
-func Unsigned32() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned32", 4}, false}
-}
-
-func Unsigned64() *PrimitiveType {
-	return &PrimitiveType{basicType{"unsigned64", 8}, false}
-}
-
-func Signed8() *PrimitiveType {
-	return &PrimitiveType{basicType{"signed8",  1}, true}
-}
-
-func Signed16() *PrimitiveType {
-	return &PrimitiveType{basicType{"signed16", 2}, true}
-}
-
-func Signed32() *PrimitiveType {
-	return &PrimitiveType{basicType{"signed32", 4}, true}
-}
-
-func Signed64() *PrimitiveType {
-	return &PrimitiveType{basicType{"signed64", 8}, true}
-}
-
 func GetBuiltinTypes() map[string]IType {
 	builtins := make(map[string]IType)
-	builtins["unsigned8"]  = Unsigned8()
-	builtins["unsigned16"] = Unsigned16()
-	builtins["unsigned32"] = Unsigned32()
-	builtins["unsigned64"] = Unsigned64()
-	builtins["signed8"]  = Signed8()
-	builtins["signed16"] = Signed16()
-	builtins["signed32"] = Signed32()
-	builtins["signed64"] = Signed64()
+	builtins["unsigned8"]  = NewPrimitive("unsigned8",  1, false)
+	builtins["unsigned16"] = NewPrimitive("unsigned16", 2, false)
+	builtins["unsigned32"] = NewPrimitive("unsigned32", 4, false)
+	builtins["unsigned64"] = NewPrimitive("unsigned64", 8, false)
+	builtins["signed8"]    = NewPrimitive("signed8",    1,  true)
+	builtins["signed16"]   = NewPrimitive("signed16",   2,  true)
+	builtins["signed32"]   = NewPrimitive("signed32",   4,  true)
+	builtins["signed64"]   = NewPrimitive("signed64",   8,  true)
 	return builtins
 }
 
