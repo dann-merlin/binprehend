@@ -6,6 +6,7 @@ import (
 	"github.com/dann-merlin/binprehend/src/file"
 	"github.com/dann-merlin/binprehend/src/model"
 	"github.com/dann-merlin/binprehend/src/utils"
+	"github.com/dann-merlin/binprehend/src/state"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -29,20 +30,17 @@ func NewFileView(f *file.File) (fyne.CanvasObject, error) {
 	addressView := NewAddressView(uint64(len(content)), offset, cols)
 	hexView := NewHexView(ds, cols)
 	asciiView := NewAsciiView(ds, cols)
-
-	c := container.NewHBox()
-	c.Add(addressView)
-	c.Add(hexView)
-	c.Add(asciiView)
-	return c, nil
+	instanceView := NewInstanceView(ds)
+	hbox := container.NewHBox(addressView, hexView, asciiView)
+	vbox := container.NewVBox(hbox, instanceView)
+	return vbox, nil
 }
 
-func NewFilesView(mainWindow fyne.Window) fyne.CanvasObject {
-	var tabs *container.AppTabs
-	openDataFileButton := widget.NewButtonWithIcon("Open data file", theme.FolderOpenIcon(), func() {
+func newOpenPage(tabs *container.DocTabs) fyne.CanvasObject {
+	openDataFileButton := widget.NewButtonWithIcon("Open", theme.FolderOpenIcon(), func() {
 		dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 			if err != nil {
-				utils.ErrorWithWindow(err, mainWindow)
+				utils.Error(fmt.Errorf("Failed to open file dialog: %w", err))
 			} else if reader == nil {
 				return
 			} else {
@@ -52,21 +50,34 @@ func NewFilesView(mainWindow fyne.Window) fyne.CanvasObject {
 				filePath := fileURI.Path()
 				f, err := file.NewFile(filePath)
 				if err != nil {
-					utils.ErrorWithWindow(fmt.Errorf("Failed to open file: %w", err), mainWindow)
+					utils.Error(fmt.Errorf("Failed to open file: %w", err))
 					return
 				}
 				fileView, err := NewFileView(f)
 				if err != nil {
-					utils.ErrorWithWindow(fmt.Errorf("Failed to create FileView: %w", err), mainWindow)
+					utils.Error(fmt.Errorf("Failed to create FileView: %w", err))
 					return
 				}
 				item := container.NewTabItem(fileURI.Name(), fileView)
 				tabs.Append(item)
 				tabs.Select(item)
 			}
-		}, mainWindow).Show()
+		}, state.GetCurrentWindow()).Show()
 	})
-	emptyPage := container.NewVBox(openDataFileButton)
-	tabs = container.NewAppTabs(container.NewTabItemWithIcon("", theme.ContentAddIcon(), emptyPage))
+	openLabel := widget.NewLabel("Open a data file to analyze...")
+	return container.NewCenter(container.NewVBox(openLabel, openDataFileButton))
+}
+
+func NewFilesView() fyne.CanvasObject {
+	tabs := container.NewDocTabs()
+	tabs.CreateTab = func() *container.TabItem {
+		return container.NewTabItem("(Select File)", newOpenPage(tabs))
+	}
+	tabs.OnClosed = func(item *container.TabItem) {
+		if len(tabs.Items) == 0 {
+			tabs.Append(tabs.CreateTab())
+		}
+	}
+	tabs.Append(tabs.CreateTab())
 	return tabs
 }

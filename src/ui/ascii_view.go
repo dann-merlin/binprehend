@@ -19,8 +19,8 @@ func NewAsciiView(dataSnippet model.DataSnippet, cols int) *fyne.Container {
 
 	for i, cell := range dataSnippet.Data {
 		r := ' '
-		if (cell.Content != nil) {
-			r = hex.ByteToAscii(*cell.Content)
+		if (cell != nil) {
+			r = hex.ByteToAscii(cell.Content)
 			content.WriteRune(r)
 		}
 

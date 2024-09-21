@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/dann-merlin/binprehend/src/model"
+	"github.com/dann-merlin/binprehend/src/state"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -13,7 +14,7 @@ func NewCreatePage(stvTabs *container.DocTabs) *fyne.Container {
 	typeSelect:= widget.NewSelect(model.GetTypesNames(), func (s string) {
 		openTypeForm.Enable()
 	})
-	model.RegisterCallback(model.TYPES_CHANGED, func() {
+	state.RegisterCallback(state.TYPES_CHANGED, func() {
 		typeSelect.Options = model.GetTypesNames()
 		typeSelect.Refresh()
 	})

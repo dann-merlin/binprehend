@@ -22,6 +22,5 @@ func main() {
 		log.Fatalf("Failed to start app: %s", err.Error())
 	}
 	w.Show()
-	state.SetCurrentWindown(w)
 	fyne.CurrentApp().Run()
 }

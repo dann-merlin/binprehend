@@ -16,8 +16,9 @@ func newMainToolbar() fyne.CanvasObject {
 
 func NewMainWindow() (fyne.Window, error) {
 	w := fyne.CurrentApp().NewWindow("binprehend")
+	state.SetCurrentWindown(w)
 	stvContainer := NewSTVContainer()
-	filesView := NewFilesView(w)
+	filesView := NewFilesView()
 	mainContent := container.NewHSplit(filesView, stvContainer)
 	mainToolbar := newMainToolbar()
 	cont := container.NewBorder(mainToolbar, nil, nil, nil, mainContent)

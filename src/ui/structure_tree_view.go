@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dann-merlin/binprehend/src/model"
+	"github.com/dann-merlin/binprehend/src/state"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -106,7 +107,7 @@ func NewStructureTreeView(t model.IType) *StructureTreeView {
 	tree.Root = BuildCompID("root", t.GetName())
 	stv.tree = tree
 	tree.OnSelected = stv.onSelected
-	model.RegisterCallback(model.TYPES_CHANGED, stv.onTypeChanged)
+	state.RegisterCallback(state.TYPES_CHANGED, stv.onTypeChanged)
 	stv.ExtendBaseWidget(stv)
 	return stv
 }

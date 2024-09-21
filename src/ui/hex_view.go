@@ -18,7 +18,10 @@ func NewHexView(dataSnippet model.DataSnippet, cols int) *fyne.Container {
 
 	var content strings.Builder
 	for i, cell := range dataSnippet.Data {
-		content.WriteString(hex.ByteToHex(*cell.Content))
+		if cell == nil {
+			continue
+		}
+		content.WriteString(hex.ByteToHex(cell.Content))
 
 		if i % 2 == 1 {
 			content.WriteString(" ")

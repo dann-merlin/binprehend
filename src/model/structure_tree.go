@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/dann-merlin/binprehend/src/utils"
+	"github.com/dann-merlin/binprehend/src/state"
 )
 
 type IType interface {
@@ -89,7 +90,7 @@ func (t *CompositeType) AddField(f *Field) error {
 			return fmt.Errorf("Field \"%s\" already exists in type \"%s\"", f.Name, t.GetName())
 		}
 	}
-	defer cb(TYPES_CHANGED)
+	defer state.TriggerEvent(state.TYPES_CHANGED)
 	t.Fields = append(t.Fields, *f)
 	t.recomputeLen()
 	return nil
@@ -183,7 +184,7 @@ func Register(t IType) {
 		return
 	}
 	customTypes[t.GetName()] = t
-	cb(TYPES_CHANGED)
+	state.TriggerEvent(state.TYPES_CHANGED)
 }
 
 func GetTypes() map[string]IType {
@@ -196,8 +197,8 @@ func GetTypes() map[string]IType {
 
 func Reset(newTypes map[string]IType) {
 	customTypes = newTypes
-	cb(RESET)
-	cb(TYPES_CHANGED)
+	state.TriggerEvent(state.TYPES_RESET)
+	state.TriggerEvent(state.TYPES_CHANGED)
 }
 
 func GetType(name string) IType {
@@ -210,18 +211,6 @@ func GetTypesNames() []string {
 		types = append(types, t)
 	}
 	return types
-}
-
-var cbs = map[ModelEvent][]func(){}
-
-func cb(event ModelEvent) {
-	for _, f := range cbs[event] {
-		f()
-	}
-}
-
-func RegisterCallback(event ModelEvent, cb func()) {
-	cbs[event] = append(cbs[event], cb)
 }
 
 var nameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
